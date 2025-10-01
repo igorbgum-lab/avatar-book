@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Customizador de Avatar Infantil</title>
+<style>
+  body { font-family: Arial, sans-serif; max-width: 900px; margin: 24px auto; padding: 0 16px; color: #222; }
+  h1 { text-align:center; }
+  .container { display: flex; gap: 24px; flex-wrap: wrap; justify-content: center; }
+  .controls { flex: 1 1 250px; display: flex; flex-direction: column; gap: 10px; }
+  select, input, button { padding: 8px; font-size: 14px; border-radius: 6px; border:1px solid #ccc; }
+  button { background:#1976d2; color:white; cursor:pointer; border:none; margin-top:10px; }
+  #preview { flex: 1 1 250px; display:flex; align-items:center; justify-content:center; border:1px dashed #ccc; border-radius:10px; min-height:280px; background: #f9f9f9; }
+  #preview svg { width:260px; height:260px; }
+</style>
+</head>
+<body>
+<h1>Customizador de Avatar Infantil</h1>
+
+<div class="container">
+  <div class="controls">
+    <input type="text" id="name" placeholder="Nome da criança (ex: Miguel)">
+
+    <label>Cabelo:</label>
+    <select id="hair">
+      <option value="ShortHairShortFlat">Curto</option>
+      <option value="LongHairStraight">Longo</option>
+      <option value="LongHairBun">Coque</option>
+      <option value="Mohawk">Moicano</option>
+    </select>
+
+    <label>Cor do cabelo:</label>
+    <select id="hairColor">
+      <option value="Black">Preto</option>
+      <option value="Blonde">Loiro</option>
+      <option value="Brown">Castanho</option>
+      <option value="Red">Ruivo</option>
+    </select>
+
+    <label>Roupa:</label>
+    <select id="clothes">
+      <option value="ShirtCrewNeck">Camiseta</option>
+      <option value="Hoodie">Moletom</option>
+      <option value="Dress">Vestido</option>
+      <option value="Jacket">Jaqueta</option>
+    </select>
+
+    <label>Cor da roupa:</label>
+    <select id="clothesColor">
+      <option value="Blue">Azul</option>
+      <option value="Red">Vermelho</option>
+      <option value="Green">Verde</option>
+      <option value="Yellow">Amarelo</option>
+    </select>
+
+    <label>Cor da pele:</label>
+    <select id="skinColor">
+      <option value="Light">Clara</option>
+      <option value="Brown">Morena</option>
+      <option value="Dark">Escura</option>
+    </select>
+
+    <label>Olhos:</label>
+    <select id="eyes">
+      <option value="Happy">Feliz</option>
+      <option value="Default">Normal</option>
+      <option value="Wink">Piscando</option>
+      <option value="Surprised">Surpreso</option>
+    </select>
+
+    <label>Boca:</label>
+    <select id="mouth">
+      <option value="Smile">Sorrindo</option>
+      <option value="Frown">Triste</option>
+      <option value="Grin">Grande sorriso</option>
+      <option value="Neutral">Neutra</option>
+    </select>
+
+    <button id="generate">Gerar Avatar</button>
+    <button id="download-pdf">Gerar PDF</button>
+  </div>
+
+  <div id="preview">Seu avatar aparecerá aqui</div>
+</div>
+
+<!-- libs via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/save-svg-as-png@1.4.17/lib/saveSvgAsPng.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/3.0.3/jspdf.umd.min.js"></script>
+
+<script>
+(function() {
+  const apiBase = 'https://api.dicebear.com/6.x/avataaars/svg';
+  const preview = document.getElementById('preview');
+
+  const inputs = {
+    name: document.getElementById('name'),
+    hair: document.getElementById('hair'),
+    hairColor: document.getElementById('hairColor'),
+    clothes: document.getElementById('clothes'),
+    clothesColor: document.getElementById('clothesColor'),
+    skinColor: document.getElementById('skinColor'),
+    eyes: document.getElementById('eyes'),
+    mouth: document.getElementById('mouth')
+  };
+
+  function makeSeed(name) {
+    const clean = (name||'Amigo').trim().replace(/\s+/g,'_').toLowerCase();
+    const short = Math.random().toString(36).slice(2,7);
+    return ${clean}-${short};
+  }
+
+  async function fetchAvatar() {
+    const seed = makeSeed(inputs.name.value);
+    const url = ${apiBase}?seed=${encodeURIComponent(seed)}&topType=${inputs.hair.value}&hairColor=${inputs.hairColor.value}&clotheType=${inputs.clothes.value}&clotheColor=${inputs.clothesColor.value}&skinColor=${inputs.skinColor.value}&eyeType=${inputs.eyes.value}&mouthType=${inputs.mouth.value};
+    
+    try {
+      const res = await fetch(url);
+      if(!res.ok) throw new Error('Erro ao gerar avatar');
+      const svgText = await res.text();
+      preview.innerHTML = svgText;
+    } catch(err) {
+      alert('Erro: ' + err.message);
+    }
+  }
+
+  document.getElementById('generate').addEventListener('click', fetchAvatar);
+
+  document.getElementById('download-pdf').addEventListener('click', function() {
+    const svgEl = preview.querySelector('svg');
+    if(!svgEl) { alert('Gere o avatar primeiro!'); return; }
+    window.svgAsPngUri(svgEl, {scale:2}, function(dataUri){
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
+      const pageW = pdf.internal.pageSize.getWidth();
+      const margin = 40;
+      const maxImgW = pageW - margin*2;
+
+      const img = new Image();
+      img.onload = function(){
+        const ratio = img.width / img.height;
+        const w = Math.min(maxImgW, img.width);
+        const h = w / ratio;
+        const x = (pageW - w)/2;
+        pdf.addImage(dataUri, 'PNG', x, 60, w, h);
+        pdf.setFontSize(18);
+        const kidName = (inputs.name.value || 'seu filho(a)');
+        pdf.text(O livro do(a) ${kidName}, margin, 60 + h + 30);
+        pdf.save(${kidName.replace(/\s+/g,'_')}_livro.pdf);
+      };
+      img.src = dataUri;
+    });
+  });
+})();
+</script>
+</body>
+</html>
