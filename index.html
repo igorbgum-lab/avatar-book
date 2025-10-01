@@ -129,22 +129,23 @@
   document.getElementById('download-pdf').addEventListener('click', function() {
     const svgEl = preview.querySelector('svg');
     if(!svgEl) { alert('Gere o avatar primeiro!'); return; }
-    window.svgAsPngUri(svgEl, {scale:2}, function(dataUri){
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
-      const pageW = pdf.internal.pageSize.getWidth();
-      const margin = 40;
-      const maxImgW = pageW - margin*2;
 
-      const img = new Image();
+    window.svgAsPngUri(svgEl, {scale:2}, function(dataUri){
+      // Usando jsPDF sem destructuring
+      var pdf = new window.jspdf.jsPDF({orientation:'portrait', unit:'pt', format:'a4'});
+      var pageW = pdf.internal.pageSize.getWidth();
+      var margin = 40;
+      var maxImgW = pageW - margin*2;
+
+      var img = new Image();
       img.onload = function(){
-        const ratio = img.width / img.height;
-        const w = Math.min(maxImgW, img.width);
-        const h = w / ratio;
-        const x = (pageW - w)/2;
+        var ratio = img.width / img.height;
+        var w = Math.min(maxImgW, img.width);
+        var h = w / ratio;
+        var x = (pageW - w)/2;
         pdf.addImage(dataUri, 'PNG', x, 60, w, h);
         pdf.setFontSize(18);
-        const kidName = (inputs.name.value || 'seu filho(a)');
+        var kidName = (inputs.name.value || 'seu filho(a)');
         pdf.text(O livro do(a) ${kidName}, margin, 60 + h + 30);
         pdf.save(${kidName.replace(/\s+/g,'_')}_livro.pdf);
       };
